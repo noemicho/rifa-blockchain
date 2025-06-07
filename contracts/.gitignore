@@ -1,0 +1,31 @@
+# Node.js
+node_modules/
+
+# Dependências de pacotes (instaladas com npm ou yarn)
+yarn.lock
+
+# Artefatos de compilação
+artifacts/
+cache/
+
+# Hardhat cache
+.hardhat/
+
+# Logs
+*.log
+
+# Arquivos de configuração do ambiente
+.env
+
+# Arquivos do editor (por exemplo, VS Code)
+.vscode/
+.idea/
+
+# Diretórios temporários do sistema
+.DS_Store
+
+# Arquivos criados durante testes
+coverage/
+
+# Backup
+*.bak
