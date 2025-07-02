@@ -1,15 +1,13 @@
 const { ethers } = require("hardhat");
 const { expect } = require("chai");
 
-
 describe("Rifa Contract", function () {
-  let Rifa;
   let rifa;
   let owner;
   let participant1;
   let participant2;
-  let ticketPrice = ethers.parseEther("0.1"); // Preço de cada bilhete: 0.1 ETH
-  let totalTickets = 5;
+  const ticketPrice = ethers.parseEther("0.1"); // 0.1 ETH
+  const totalTickets = 5;
 
   beforeEach(async function () {
     [owner, participant1, participant2] = await ethers.getSigners();
@@ -39,7 +37,7 @@ describe("Rifa Contract", function () {
 
     it("Deve falhar se o valor do bilhete estiver incorreto", async function () {
       await expect(
-        rifa.connect(participant1).buyTicket({ value: ethers.parseEther("0.05") }) // Valor errado
+        rifa.connect(participant1).buyTicket({ value: ethers.parseEther("0.05") })
       ).to.be.revertedWith("Valor incorreto para o bilhete");
     });
 
@@ -51,58 +49,60 @@ describe("Rifa Contract", function () {
       await expect(
         rifa.connect(participant2).buyTicket({ value: ticketPrice })
       ).to.be.revertedWith("Rifa terminou");
-
     });
 
-    it("Deve finalizar a rifa quando todos os bilhetes forem vendidos", async function () {
+    it("Deve finalizar a rifa e emitir evento quando todos os bilhetes forem vendidos", async function () {
+      let tx;
+
       for (let i = 0; i < totalTickets; i++) {
-        await rifa.connect(participant1).buyTicket({ value: ticketPrice });
+        tx = await rifa.connect(participant1).buyTicket({ value: ticketPrice });
       }
+
+      const receipt = await tx.wait();
+      const event = receipt.logs.find(log => log.fragment.name === "RaffleEnded");
+
+      expect(event).to.not.be.undefined;
+
+      const [winner, prizeAmount] = event.args;
+
+      expect(winner).to.equal(participant1.address);
+
+      const expectedPrize = ticketPrice * BigInt(totalTickets) * BigInt(80) / BigInt(100);
+      expect(prizeAmount).to.equal(expectedPrize);
 
       expect(await rifa.raffleEnded()).to.be.true;
     });
-  
 
-  it("Deve falhar ao tentar comprar bilhete após o fim da rifa", async function () {
-  for (let i = 0; i < totalTickets; i++) {
-    await rifa.connect(participant1).buyTicket({ value: ticketPrice });
-  }
-
-  await expect(
-    rifa.connect(participant2).buyTicket({ value: ticketPrice })
-  ).to.be.revertedWith("Rifa terminou");
-});
-
-    it("Deve permitir a retirada dos prêmios quando a rifa terminar", async function () {
-      // Comprar bilhetes até que a rifa termine
+    it("Deve falhar ao tentar comprar bilhete após o fim da rifa", async function () {
       for (let i = 0; i < totalTickets; i++) {
         await rifa.connect(participant1).buyTicket({ value: ticketPrice });
       }
 
-      // O vencedor e o prêmio devem ser definidos corretamente
-      const winner = await rifa.participants(0); // O vencedor será aleatório, mas vamos pegar o primeiro participante como exemplo
-      const winnerPrize = ticketPrice * BigInt(totalTickets * 80) / BigInt(100);
-
-      // Verificar a transferência para o vencedor
-      await expect(rifa.endRaffle())
-        .to.emit(rifa, "RaffleEnded")
-        .withArgs(winner, winnerPrize);
+      await expect(
+        rifa.connect(participant2).buyTicket({ value: ticketPrice })
+      ).to.be.revertedWith("Rifa terminou");
     });
   });
 
-  describe("Função Random", function () {
-    it("Deve gerar um vencedor aleatório", async function () {
-      // A função random é privada, então não podemos testá-la diretamente,
-      // mas podemos testar se ela é usada corretamente na função endRaffle
-      await rifa.connect(participant1).buyTicket({ value: ticketPrice });
-      await rifa.connect(participant2).buyTicket({ value: ticketPrice });
+  describe("Função Random (teste indireto)", function () {
+    it("Deve escolher aleatoriamente um vencedor entre os participantes", async function () {
+      const allParticipants = [participant1, participant2, owner, participant1, participant2];
 
-      // Vamos esperar que a rifa termine
-      await rifa.endRaffle();
+      let lastTx;
+      for (let i = 0; i < totalTickets; i++) {
+        lastTx = await rifa.connect(allParticipants[i]).buyTicket({ value: ticketPrice });
+      }
 
-      // Verificar se o vencedor é um dos participantes
-      const winner = await rifa.participants(0);
-      expect([participant1.address, participant2.address]).to.include(winner);
+      const receipt = await lastTx.wait();
+      const event = receipt.logs.find(log => log.fragment.name === "RaffleEnded");
+
+      expect(event).to.not.be.undefined;
+
+      const [winner] = event.args;
+
+      const participantAddresses = allParticipants.map(p => p.address);
+      expect(participantAddresses).to.include(winner);
     });
+
   });
 });
