@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import RifaABI from "./abis/Rifa.json"; 
-const contractAddress = "0xSEU_CONTRATO_AQUI"; // substitua pelo seu endereço
+import RifaABI from "./abis/Rifa.json";
+const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 function App() {
   const [wallet, setWallet] = useState(null);
@@ -21,7 +21,7 @@ function App() {
       setWallet(account);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, RifaABI, signer);
+      const contract = new ethers.Contract(contractAddress, RifaABI.abi, signer);
       setRifa(contract);
     } else {
       alert("Metamask não encontrado");
