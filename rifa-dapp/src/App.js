@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import RifaABI from "./abis/Rifa.json";
+import './App.css';
 const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   const [raffleEnded, setRaffleEnded] = useState(false);
   const [winner, setWinner] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [qtd, setQtd] = useState(1);
 
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -53,11 +55,14 @@ function App() {
   const buyTicket = async () => {
     try {
       setLoading(true);
-      const tx = await rifa.buyTicket({
-        value: ethers.parseEther(ticketPrice),
+
+      const TotalPrice = ethers.parseEther((Number(ticketPrice)* qtd).toString());
+      const tx = await rifa.buyTicket(qtd, {
+        value: TotalPrice,
       });
+
       await tx.wait();
-      alert("Bilhete comprado com sucesso!");
+      alert(`${qtd} bilhete(s) comprado(s) com sucesso!`);
       loadData();
     } catch (err) {
       alert("Erro: " + err.message);
@@ -72,8 +77,34 @@ function App() {
     }
   }, [rifa]);
 
+  useEffect(() => {
+    if (window.ethereum) {
+      const handleAccountsChanged = (accounts) => {
+        if (accounts.length > 0) {
+          setWallet(accounts[0]);
+  
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          provider.getSigner().then((signer) => {
+            const contract = new ethers.Contract(contractAddress, RifaABI.abi, signer);
+            setRifa(contract);
+          });
+        } else {
+          setWallet(null);
+          setRifa(null);
+        }
+      };
+  
+      window.ethereum.on("accountsChanged", handleAccountsChanged);
+  
+      return () => {
+        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
+      };
+    }
+  }, []);
+  
+
   return (
-    <div style={{ padding: 20 }}>
+    <div className="container">
       <h1>🎟️ Rifa da Noemi e Ênnya</h1>
 
       {!wallet ? (
@@ -88,9 +119,21 @@ function App() {
           <p>Preço do bilhete: {ticketPrice} ETH</p>
 
           {!raffleEnded ? (
-            <button onClick={buyTicket} disabled={loading}>
-              {loading ? "Processando..." : "Comprar Bilhete"}
-            </button>
+            <>
+              <div>
+                <input
+                  type="number"
+                  min="1"
+                  value={qtd}
+                  onChange={(e) => setQtd(Number(e.target.value))}
+                  disabled={loading}
+                  defaultValue={1}
+                />
+              </div>
+              <button onClick={buyTicket} disabled={loading}>
+                {loading ? "Processando..." : `Comprar ${qtd} bilhete(s)`}
+              </button>
+            </>
           ) : (
             <div>
               <h3>🏆 Rifa encerrada!</h3>

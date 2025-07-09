@@ -1,8 +1,8 @@
 const { ethers } = require("hardhat");
 
 async function main() {
-  const totalTickets = 10;
-  const ticketPrice = ethers.parseEther("0.01");
+  const totalTickets = 20;
+  const ticketPrice = ethers.parseEther("0.002");
 
   const Rifa = await ethers.getContractFactory("Rifa");
   const rifa = await Rifa.deploy(totalTickets, ticketPrice);

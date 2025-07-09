@@ -19,13 +19,16 @@ contract Rifa {
         raffleEnded = false;
     }
 
-    function buyTicket() external payable {
-        require(!raffleEnded, "Rifa terminou");
-        require(soldTickets < totalTickets, "Todos os bilhetes foram vendidos");
-        require(msg.value == ticketPrice, "Valor incorreto para o bilhete");
+    function buyTicket(uint qtd) external payable {
+        require(!raffleEnded, "Rifa terminou...");
+        require(qtd > 0, "Precisa comprar pelo menos 1 bilhete!");
+        require(soldTickets + qtd <= totalTickets, "Nao ha bilhetes suficientes...");
+        require(msg.value == ticketPrice * qtd, "Valor incorreto para os bilhetes");
 
-        participants.push(msg.sender);
-        soldTickets++;
+        for (uint i = 0; i < qtd; i++) {
+            participants.push(msg.sender);
+            soldTickets++;
+        }   
         
         if (soldTickets == totalTickets) {
             endRaffle();  
@@ -36,7 +39,7 @@ contract Rifa {
         bytes32 blockHash = blockhash(block.number - 1);
         
         // Combina o blockhash, o timestamp e a dificuldade do bloco com a lista de participantes
-        uint256 combinedData = uint256(keccak256(abi.encodePacked(blockHash, block.timestamp, block.difficulty, participants)));
+        uint256 combinedData = uint256(keccak256(abi.encodePacked(blockHash, block.timestamp, block.prevrandao, participants)));
         uint256 randomIndex = combinedData % participants.length; 
         
         return randomIndex;
