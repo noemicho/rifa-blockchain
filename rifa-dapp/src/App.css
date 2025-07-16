@@ -62,3 +62,40 @@ body {
     color: #27ae60;
   }
   
+
+
+  .container {
+  max-width: 600px;
+  margin: auto;
+  text-align: center;
+  font-family: sans-serif;
+}
+
+.ticket-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 20px 0;
+}
+
+.ticket {
+  width: 40px;
+  height: 40px;
+  font-weight: bold;
+  border: 1px solid #999;
+  border-radius: 5px;
+  cursor: pointer;
+  background-color: rgb(196, 133, 233);
+}
+
+.ticket.selected {
+  background-color: #4caf50;
+  color: white;
+}
+
+.ticket.sold {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
