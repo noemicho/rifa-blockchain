@@ -1,20 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import RifaABI from "./abis/Rifa.json";
-import "./App.css";
-
+import './App.css';
 const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 function App() {
   const [wallet, setWallet] = useState(null);
   const [rifa, setRifa] = useState(null);
   const [totalTickets, setTotalTickets] = useState(0);
-  const [soldTicketList, setSoldTicketList] = useState([]);
+  const [soldTickets, setSoldTickets] = useState(0);
   const [ticketPrice, setTicketPrice] = useState("0");
   const [raffleEnded, setRaffleEnded] = useState(false);
   const [winner, setWinner] = useState(null);
-  const [selectedTickets, setSelectedTickets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [qtd, setQtd] = useState(1);
 
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -34,12 +33,11 @@ function App() {
   const loadData = async () => {
     if (rifa) {
       const total = await rifa.totalTickets();
-      const soldTickets = await rifa.getSoldTickets();
+      const sold = await rifa.soldTickets();
       const price = await rifa.ticketPrice();
       const ended = await rifa.raffleEnded();
-
       setTotalTickets(Number(total));
-      setSoldTicketList(soldTickets.map((t) => Number(t)));
+      setSoldTickets(Number(sold));
       setTicketPrice(ethers.formatEther(price));
       setRaffleEnded(ended);
 
@@ -54,29 +52,17 @@ function App() {
     }
   };
 
-  const isTicketSold = (ticket) => soldTicketList.includes(ticket);
-
-  const toggleTicket = (ticket) => {
-    if (isTicketSold(ticket)) return;
-    if (selectedTickets.includes(ticket)) {
-      setSelectedTickets(selectedTickets.filter((t) => t !== ticket));
-    } else {
-      setSelectedTickets([...selectedTickets, ticket]);
-    }
-  };
-
   const buyTicket = async () => {
     try {
       setLoading(true);
-      const totalValue = ethers.parseEther((ticketPrice * selectedTickets.length).toString());
 
-      const tx = await rifa.buyTickets(selectedTickets, {
-        value: totalValue,
+      const TotalPrice = ethers.parseEther((Number(ticketPrice)* qtd).toString());
+      const tx = await rifa.buyTicket(qtd, {
+        value: TotalPrice,
       });
 
       await tx.wait();
-      alert(`${selectedTickets.length} bilhete(s) comprado(s) com sucesso!`);
-      setSelectedTickets([]);
+      alert(`${qtd} bilhete(s) comprado(s) com sucesso!`);
       loadData();
     } catch (err) {
       alert("Erro: " + err.message);
@@ -96,6 +82,7 @@ function App() {
       const handleAccountsChanged = (accounts) => {
         if (accounts.length > 0) {
           setWallet(accounts[0]);
+  
           const provider = new ethers.BrowserProvider(window.ethereum);
           provider.getSigner().then((signer) => {
             const contract = new ethers.Contract(contractAddress, RifaABI.abi, signer);
@@ -106,14 +93,15 @@ function App() {
           setRifa(null);
         }
       };
+  
       window.ethereum.on("accountsChanged", handleAccountsChanged);
+  
       return () => {
         window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
       };
     }
   }, []);
-
-  const allTickets = Array.from({ length: totalTickets }, (_, i) => i + 1);
+  
 
   return (
     <div className="container">
@@ -127,27 +115,23 @@ function App() {
 
       {rifa && (
         <>
-          <p>Bilhetes vendidos: {soldTicketList.length} / {totalTickets}</p>
+          <p>Bilhetes vendidos: {soldTickets} / {totalTickets}</p>
           <p>Preço do bilhete: {ticketPrice} ETH</p>
 
           {!raffleEnded ? (
             <>
-              <div className="ticket-grid">
-                {allTickets.map((ticket) => (
-                  <button
-                    key={ticket}
-                    className={`ticket ${
-                      isTicketSold(ticket) ? "sold" : selectedTickets.includes(ticket) ? "selected" : ""
-                    }`}
-                    disabled={isTicketSold(ticket)}
-                    onClick={() => toggleTicket(ticket)}
-                  >
-                    {ticket}
-                  </button>
-                ))}
+              <div>
+                <input
+                  type="number"
+                  min="1"
+                  value={qtd}
+                  onChange={(e) => setQtd(Number(e.target.value))}
+                  disabled={loading}
+                  defaultValue={1}
+                />
               </div>
-              <button onClick={buyTicket} disabled={loading || selectedTickets.length === 0}>
-                {loading ? "Processando..." : `Comprar ${selectedTickets.length} bilhete(s)`}
+              <button onClick={buyTicket} disabled={loading}>
+                {loading ? "Processando..." : `Comprar ${qtd} bilhete(s)`}
               </button>
             </>
           ) : (
