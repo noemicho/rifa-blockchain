@@ -1,21 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
 import RifaABI from "./abis/Rifa.json";
 import './App.css';
 const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 function App() {
-  const [numbers] = useState(Array.from({ length: 100 }, (_, i) => i + 1));
   const [wallet, setWallet] = useState(null);
   const [rifa, setRifa] = useState(null);
   const [totalTickets, setTotalTickets] = useState(0);
   const [soldTickets, setSoldTickets] = useState(0);
-  const [ticketPrice, setTicketPrice] = useState(0n); // Alterado para BigInt, o 'n' no final é importante
+  const [ticketPrice, setTicketPrice] = useState("0");
   const [raffleEnded, setRaffleEnded] = useState(false);
   const [winner, setWinner] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [selectedNumbers, setSelectedNumbers] = useState([]);
-  const [soldTicketNumbers, setSoldTicketNumbers] = useState([]);
+  const [qtd, setQtd] = useState(1);
 
   const connectWallet = async () => {
     if (window.ethereum) {
@@ -32,7 +30,7 @@ function App() {
     }
   };
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     if (rifa) {
       const total = await rifa.totalTickets();
       const sold = await rifa.soldTickets();
@@ -40,24 +38,9 @@ function App() {
       const ended = await rifa.raffleEnded();
       setTotalTickets(Number(total));
       setSoldTickets(Number(sold));
-      setTicketPrice(price); // Armazena o preço em Wei como BigInt
+      setTicketPrice(ethers.formatEther(price));
       setRaffleEnded(ended);
 
-      // Carrega os números de bilhetes que já foram vendidos fazendo chamadas em paralelo
-      const promises = [];
-      const totalAsNumber = Number(total);
-      for (let i = 1; i <= totalAsNumber; i++) {
-        promises.push(rifa.isTicketSold(i));
-      }
-
-      const results = await Promise.all(promises);
-      const soldNumbers = [];
-      results.forEach((isSold, index) => {
-        if (isSold) {
-          soldNumbers.push(index + 1); // Números dos bilhetes são base 1 (index + 1)
-        }
-      });
-      setSoldTicketNumbers(soldNumbers);
       if (ended) {
         const filtro = rifa.filters.RaffleEnded();
         const eventos = await rifa.queryFilter(filtro);
@@ -67,26 +50,20 @@ function App() {
         }
       }
     }
-  }, [rifa]);
+  };
 
-  const buyTicket = async (numbersToBuy) => {
+  const buyTicket = async () => {
     try {
       setLoading(true);
 
-      const quantity = numbersToBuy.length;
-
-      // Lógica de cálculo corrigida para usar BigInt, evitando erros de ponto flutuante
-      const totalPriceInWei = ticketPrice * BigInt(quantity);
-
-      // Passa o array de números selecionados para o contrato
-      const tx = await rifa.buyTicket(numbersToBuy, {
-        value: totalPriceInWei,
+      const TotalPrice = ethers.parseEther((Number(ticketPrice)* qtd).toString());
+      const tx = await rifa.buyTicket(qtd, {
+        value: TotalPrice,
       });
 
       await tx.wait();
-      alert(`${quantity} bilhete(s) comprado(s) com sucesso!`);
+      alert(`${qtd} bilhete(s) comprado(s) com sucesso!`);
       loadData();
-      setSelectedNumbers([]);
     } catch (err) {
       alert("Erro: " + err.message);
     } finally {
@@ -94,30 +71,11 @@ function App() {
     }
   };
 
-  const toggleNumber = (number) => {
-    // Impede a seleção de um número que já foi vendido
-    if (soldTicketNumbers.includes(number)) return;
-
-    setSelectedNumbers((prevSelected) =>
-      prevSelected.includes(number)
-        ? prevSelected.filter((num) => num !== number)
-        : [...prevSelected, number]
-    );
-  };
-
   useEffect(() => {
     if (rifa) {
       loadData();
     }
-  }, [rifa, loadData]);
-
-  const buySelectedTickets = async () => {
-    if (selectedNumbers.length === 0) {
-      alert("Selecione pelo menos um número para comprar.");
-      return;
-    }
-    await buyTicket(selectedNumbers);
-  };
+  }, [rifa]);
 
   useEffect(() => {
     if (window.ethereum) {
@@ -137,11 +95,13 @@ function App() {
       };
   
       window.ethereum.on("accountsChanged", handleAccountsChanged);
+  
       return () => {
         window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
       };
     }
   }, []);
+  
 
   return (
     <div className="container">
@@ -156,33 +116,22 @@ function App() {
       {rifa && (
         <>
           <p>Bilhetes vendidos: {soldTickets} / {totalTickets}</p>
-          {/* Formatando o preço para exibição, convertendo de Wei para ETH */}
-          <p>Preço do bilhete: {ethers.formatEther(ticketPrice)} ETH</p>
+          <p>Preço do bilhete: {ticketPrice} ETH</p>
 
           {!raffleEnded ? (
             <>
-              <div className="number-grid">
-                {numbers.map((number) => {
-                  const isSold = soldTicketNumbers.includes(number);
-                  const isSelected = selectedNumbers.includes(number);
-                  return (
-                    <button
-                      key={number}
-                      className={`number-button ${isSold ? "sold" : ""} ${isSelected ? "selected" : ""}`}
-                      onClick={() => toggleNumber(number)}
-                      disabled={loading || isSold}
-                    >{number}</button>
-                  );
-                })}
+              <div>
+                <input
+                  type="number"
+                  min="1"
+                  value={qtd}
+                  onChange={(e) => setQtd(Number(e.target.value))}
+                  disabled={loading}
+                  defaultValue={1}
+                />
               </div>
-              <button
-                onClick={buySelectedTickets}
-                disabled={loading || selectedNumbers.length === 0}
-              >
-                {loading
-                  ? "Processando..."
-                  : `Comprar ${selectedNumbers.length} bilhete(s)`
-                }
+              <button onClick={buyTicket} disabled={loading}>
+                {loading ? "Processando..." : `Comprar ${qtd} bilhete(s)`}
               </button>
             </>
           ) : (

@@ -8,9 +8,6 @@ contract Rifa {
     uint256 public soldTickets;
     address[] public participants;
     bool public raffleEnded;
-        mapping(uint256 => bool) public isTicketSold; // Mapeamento para rastrear bilhetes vendidos
-    uint256 public winningNumber; // Número sorteado
-
 
     event RaffleEnded(address winner, uint256 prizeAmount);
 
@@ -22,23 +19,19 @@ contract Rifa {
         raffleEnded = false;
     }
 
-    function buyTicket(uint[] memory _ticketNumbers) external payable {
+    function buyTicket(uint qtd) external payable {
         require(!raffleEnded, "Rifa terminou...");
-        require(_ticketNumbers.length > 0, "Precisa comprar pelo menos 1 bilhete!");
-        require(soldTickets + _ticketNumbers.length <= totalTickets, "Nao ha bilhetes suficientes...");
-        require(msg.value == ticketPrice * _ticketNumbers.length, "Valor incorreto para os bilhetes");
+        require(qtd > 0, "Precisa comprar pelo menos 1 bilhete!");
+        require(soldTickets + qtd <= totalTickets, "Nao ha bilhetes suficientes...");
+        require(msg.value == ticketPrice * qtd, "Valor incorreto para os bilhetes");
 
-        for (uint i = 0; i < _ticketNumbers.length; i++) {
-            uint ticketNumber = _ticketNumbers[i];
-            require(ticketNumber > 0 && ticketNumber <= totalTickets, "Numero de bilhete invalido");
-            require(!isTicketSold[ticketNumber], "Bilhete ja vendido!");
-
-            isTicketSold[ticketNumber] = true;
-            participants.push(msg.sender); // Simplificado, adicionando o comprador uma vez por compra
+        for (uint i = 0; i < qtd; i++) {
+            participants.push(msg.sender);
             soldTickets++;
         }   
+        
         if (soldTickets == totalTickets) {
-            endRaffle();
+            endRaffle();  
         }
     }
 
