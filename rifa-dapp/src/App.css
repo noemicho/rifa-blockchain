@@ -62,3 +62,41 @@ body {
     color: #27ae60;
   }
   
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+}
+
+.number-button {
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  background-color: #fff;
+  color: #333;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.number-button:not(:disabled):hover {
+  transform: translateY(-2px);
+}
+
+.number-button.selected {
+  background-color: #6c63ff;
+  color: white;
+  border-color: #574fd6;
+}
+
+.number-button.sold {
+  background-color: #e0e0e0;
+  color: #a0a0a0;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+  
