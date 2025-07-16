@@ -24,6 +24,7 @@ cd rifa-blockchain
 
 ```bash
 npm install
+npm install --save-dev hardhat
 ```
 
 ### Inicie a blockchain local com Hardhat
