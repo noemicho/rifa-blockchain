@@ -29,6 +29,7 @@ npm install
 ### Inicie a blockchain local com Hardhat
 
 ```bash
+cd contracts
 npx hardhat node
 ```
 
