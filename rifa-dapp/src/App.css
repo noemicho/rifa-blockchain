@@ -1,104 +1,203 @@
 body {
-    background: #fefefe;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    color: #333;
-    margin: 0;
-    padding: 0;
-  }
-  
-  .container {
-    max-width: 500px;
-    margin: 40px auto;
-    padding: 30px;
-    background: #ffffff;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-    border-radius: 12px;
-    text-align: center;
-  }
-  
-  h1 {
-    font-size: 28px;
-    margin-bottom: 20px;
-    color: #2c3e50;
-  }
-  
-  p {
-    margin: 10px 0;
-    font-size: 16px;
-  }
-  
-  input[type="number"] {
-    padding: 8px;
-    font-size: 16px;
-    width: 80px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    margin-bottom: 10px;
-  }
-  
-  button {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #6c63ff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-    margin-top: 10px;
-  }
-  
-  button:hover {
-    background-color: #574fd6;
-  }
-  
-  button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-  }
-  
-  h3 {
-    margin-top: 20px;
-    color: #27ae60;
-  }
-  
-  .ticket-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-  }
-  
-  .ticket-button {
-    padding: 10px 14px;
-    border-radius: 6px;
-    border: 1px solid #999;
-    background-color: #a355fc;
-    cursor: pointer;
-    transition: 0.2s;
-  }
-  
-  .ticket-button.selected {
-    background-color: #4caf50;
-    color: white;
-    border-color: #4caf50;
-  }
-  
-  
-  .ticket-button:hover:not(:disabled) {
-    background-color: #ddd;
-  }
-  
-  .ticket-button.selected {
-    background-color: #4caf50;
-    color: white;
-    border-color: #4caf50;
-  }
-  
-  .ticket-button.sold {
-    background-color: #f44336;
-    color: white;
-    border-color: #f44336;
-    cursor: not-allowed;
-  }
-  
+  background: #fefefe;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #fff;
+  box-shadow: 0 0 15px rgba(0,0,0,0.05);
+  border-radius: 12px;
+  text-align: center;
+}
+
+h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #2c3e50;
+}
+
+h3 {
+  margin-top: 20px;
+  color: #27ae60;
+}
+
+p {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #6c63ff;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background-color: #574fd6;
+}
+
+.btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.select {
+  padding: 8px;
+  font-size: 16px;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.ticket-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.ticket-button {
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid #999;
+  background-color: #a355fc;
+  cursor: pointer;
+  transition: 0.2s;
+  user-select: none;
+}
+
+.ticket-button:hover:not(:disabled) {
+  background-color: #ddd;
+  color: #333;
+}
+
+.ticket-button.selected {
+  background-color: #4caf50;
+  color: white;
+  border-color: #4caf50;
+}
+
+.ticket-button.sold {
+  background-color: #f44336;
+  color: white;
+  border-color: #f44336;
+  cursor: not-allowed;
+}
+
+.buy-btn {
+  margin-top: 0;
+  width: 100%;
+  max-width: 400px;
+}
+
+
+/* container e botão já mostrados antes */
+
+.rifa-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.rifa-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 6px 0;
+  padding: 10px 12px;
+  background: #f7f7f7;
+  border-radius: 8px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.03);
+}
+
+.rifa-item button {
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.rifa-details {
+  margin-top: 20px;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 20px 30px;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+}
+
+.modal label {
+  display: block;
+  margin: 12px 0 6px;
+  font-weight: 600;
+}
+
+.modal input[type="text"],
+.modal input[type="number"] {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.modal-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.cancel-btn {
+  background-color: #ccc !important;
+  color: #333 !important;
+}
+
+.cancel-btn:hover {
+  background-color: #aaa !important;
+}
+
+.buy-btn {
+  margin-top: 10px;
+  width: 100%;
+}

@@ -1,198 +1,255 @@
 import React, { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import RifaABI from "./abis/Rifa.json";
-import './App.css';
+import MultiRifaABI from "./abis/Rifa.json";
+import "./App.css";
+
 const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 function App() {
   const [wallet, setWallet] = useState(null);
-  const [rifa, setRifa] = useState(null);
-  const [totalTickets, setTotalTickets] = useState(0);
-  const [soldTickets, setSoldTickets] = useState(0);
-  const [ticketPrice, setTicketPrice] = useState("0");
-  const [raffleEnded, setRaffleEnded] = useState(false);
-  const [winner, setWinner] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [qtd, setQtd] = useState(1);
+  const [contract, setContract] = useState(null);
+  const [rifas, setRifas] = useState([]);
+  const [selectedRifaId, setSelectedRifaId] = useState(null);
+  const [rifaDetails, setRifaDetails] = useState(null);
   const [selectedTickets, setSelectedTickets] = useState([]);
-  const [soldTicketNumbers, setSoldTicketNumbers] = useState([]);
-  const [winningTicketNumber, setWinningTicketNumber] = useState(null);
+  const [loading, setLoading] = useState(false);
 
+  const [newName, setNewName] = useState("");
+  const [newTotalTickets, setNewTotalTickets] = useState(10);
+  const [newTicketPrice, setNewTicketPrice] = useState("0.01");
 
   const connectWallet = async () => {
-    if (window.ethereum) {
-      const [account] = await window.ethereum.request({
-        method: "eth_requestAccounts",
-      });
-      setWallet(account);
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, RifaABI.abi, signer);
-      setRifa(contract);
-    } else {
-      alert("Metamask não encontrado");
+    if (!window.ethereum) {
+      alert("Instale o Metamask");
+      return;
     }
+    const prov = new ethers.BrowserProvider(window.ethereum);
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    setWallet(accounts[0]);
+    const signer = await prov.getSigner();
+    const contractInstance = new ethers.Contract(contractAddress, MultiRifaABI.abi, signer);
+    setContract(contractInstance);
   };
 
-  const loadData = async () => {
-    if (rifa) {
-      const total = await rifa.totalTickets();
-      const sold = await rifa.soldTickets();
-      const price = await rifa.ticketPrice();
-      const ended = await rifa.raffleEnded();
-  
-      const vendidos = await rifa.getSoldTickets();
-      const vendidosNumeros = vendidos.map((v) => Number(v));
-  
-      setTotalTickets(Number(total));
-      setSoldTickets(Number(sold));
-      setTicketPrice(ethers.formatEther(price));
-      setRaffleEnded(ended);
-      setSoldTicketNumbers(vendidosNumeros);
-  
-      if (ended) {
-        const filtro = rifa.filters.RaffleEnded();
-        const eventos = await rifa.queryFilter(filtro);
-        const ultimo = eventos[eventos.length - 1];
-        if (ultimo) {
-          setWinner(ultimo.args[0]);
-          setWinningTicketNumber(Number(ultimo.args[1])); 
-        }
-      }
+  const loadRifas = async () => {
+    if (!contract) return;
+    const count = await contract.getRifasCount();
+    const temp = [];
+    for (let i = 0; i < count; i++) {
+      const r = await contract.getRifaBasic(i);
+      temp.push({
+        id: i,
+        name: r[0],
+        owner: r[1],
+        ticketPrice: ethers.formatEther(r[2]),
+        totalTickets: Number(r[3]),
+        soldTickets: Number(r[4]),
+        raffleEnded: r[5],
+        winner: r[6],
+        winningTicketNumber: Number(r[7]),
+      });
     }
+    setRifas(temp);
   };
-  
+
+  const selectRifa = async (rifaId) => {
+    setSelectedRifaId(rifaId);
+    setSelectedTickets([]);
+    if (!contract) return;
+
+    const r = await contract.getRifaBasic(rifaId);
+    const sold = await contract.getSoldTickets(rifaId);
+
+    setRifaDetails({
+      id: rifaId,
+      name: r[0],
+      owner: r[1],
+      ticketPrice: ethers.formatEther(r[2]),
+      totalTickets: Number(r[3]),
+      soldTickets: Number(r[4]),
+      raffleEnded: r[5],
+      winner: r[6],
+      winningTicketNumber: Number(r[7]),
+      soldTicketNumbers: sold.map(n => Number(n)),
+    });
+  };
+
+  const createRifa = async () => {
+    if (!contract) return alert("Conecte carteira");
+    if (!newName) return alert("Informe o nome da rifa");
+
+    setLoading(true);
+    try {
+      const tx = await contract.createRifa(
+        newName,
+        Number(newTotalTickets),
+        ethers.parseEther(newTicketPrice)
+      );
+      await tx.wait();
+      alert("Rifa criada!");
+      setNewName("");
+      setNewTotalTickets(10);
+      setNewTicketPrice("0.01");
+      await loadRifas();
+    } catch (e) {
+      alert("Erro: " + (e?.reason || e?.message || e));
+    }
+    setLoading(false);
+  };
 
   const toggleTicket = (num) => {
+    if (!rifaDetails) return;
+    if (rifaDetails.soldTicketNumbers.includes(num)) return;
+    if (rifaDetails.raffleEnded) return;
+
     if (selectedTickets.includes(num)) {
-      setSelectedTickets(selectedTickets.filter((n) => n !== num));
+      setSelectedTickets(selectedTickets.filter(n => n !== num));
     } else {
       setSelectedTickets([...selectedTickets, num]);
     }
   };
-  
 
-  const buyTicket = async () => {
-    if (!rifa) return;
-  
-    if (selectedTickets.length === 0) {
-      alert("Selecione ao menos um bilhete.");
-      return;
-    }
-  
+  const buyTickets = async () => {
+    if (!contract || !rifaDetails) return;
+    if (selectedTickets.length === 0) return alert("Selecione pelo menos um bilhete");
+
+    setLoading(true);
     try {
-      setLoading(true);
-  
-      // Calcula o preço total com base na quantidade de bilhetes
-      const totalPrice = ethers.parseEther(
-        (Number(ticketPrice) * selectedTickets.length).toString()
-      );
-  
-      // Envia a transação para a função nova do contrato
-      const tx = await rifa.buySpecificTickets(selectedTickets, {
-        value: totalPrice,
-      });
-  
+      const totalPrice = ethers.parseEther((rifaDetails.ticketPrice * selectedTickets.length).toString());
+      const tx = await contract.buySpecificTickets(rifaDetails.id, selectedTickets, { value: totalPrice });
       await tx.wait();
-  
-      alert(`Bilhetes comprados com sucesso: ${selectedTickets.join(", ")}`);
-  
-      // Limpa seleção e recarrega dados
+      alert("Bilhetes comprados: " + selectedTickets.join(", "));
       setSelectedTickets([]);
-      await loadData();
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao comprar bilhetes: " + (err?.reason || err?.message || "erro desconhecido"));
-    } finally {
-      setLoading(false);
+      await selectRifa(rifaDetails.id);
+      await loadRifas();
+    } catch (e) {
+      alert("Erro ao comprar: " + (e?.reason || e?.message || e));
     }
+    setLoading(false);
   };
-  
+
+  const endRaffleManually = async () => {
+    if (!contract || !rifaDetails) return;
+    setLoading(true);
+    try {
+      const tx = await contract.endRaffleManually(rifaDetails.id);
+      await tx.wait();
+      alert("Rifa encerrada manualmente!");
+      await selectRifa(rifaDetails.id);
+      await loadRifas();
+    } catch (e) {
+      alert("Erro ao encerrar: " + (e?.reason || e?.message || e));
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    if (rifa) {
-      loadData();
+    if (contract) {
+      loadRifas();
     }
-  }, [rifa]);
-
-  useEffect(() => {
-    if (window.ethereum) {
-      const handleAccountsChanged = (accounts) => {
-        if (accounts.length > 0) {
-          setWallet(accounts[0]);
-  
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          provider.getSigner().then((signer) => {
-            const contract = new ethers.Contract(contractAddress, RifaABI.abi, signer);
-            setRifa(contract);
-          });
-        } else {
-          setWallet(null);
-          setRifa(null);
-        }
-      };
-  
-      window.ethereum.on("accountsChanged", handleAccountsChanged);
-  
-      return () => {
-        window.ethereum.removeListener("accountsChanged", handleAccountsChanged);
-      };
-    }
-  }, []);
-  
+  }, [contract]);
 
   return (
     <div className="container">
-      <h1>🎟️ Rifa da Noemi e Ênnya</h1>
+      <h1>🎟️ Multi Rifa</h1>
 
       {!wallet ? (
-        <button onClick={connectWallet}>Conectar carteira</button>
+        <button className="btn" onClick={connectWallet}>Conectar carteira</button>
       ) : (
-        <p>Carteira conectada: {wallet}</p>
+        <p>Carteira conectada: <b>{wallet}</b></p>
       )}
 
-      {rifa && (
-        <>
-          <p>Bilhetes vendidos: {soldTickets} / {totalTickets}</p>
-          <p>Preço do bilhete: {ticketPrice} ETH</p>
-          <div className="tickets">
-            <h3>Escolha seus bilhetes:</h3>
-            <div className="ticket-list">
-              {Array.from({ length: totalTickets }, (_, i) => i + 1).map((num) => {
-                const isSold = soldTicketNumbers.includes(num);
-                const isSelected = selectedTickets.includes(num);
+      <hr />
 
-                return (
-                  <button
-                    key={num}
-                    className={`ticket-button ${isSold ? "sold" : isSelected ? "selected" : ""}`}
-                    onClick={() => !isSold && toggleTicket(num)}
-                    disabled={isSold || raffleEnded}
-                  >
-                    {num}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+      <h3>Criar nova rifa</h3>
+      <input
+        className="select"
+        placeholder="Nome da rifa"
+        value={newName}
+        onChange={e => setNewName(e.target.value)}
+      />
+      <input
+        className="select"
+        type="number"
+        min={1}
+        value={newTotalTickets}
+        onChange={e => setNewTotalTickets(Number(e.target.value))}
+      />
+      <input
+        className="select"
+        placeholder="Preço do bilhete (ETH)"
+        value={newTicketPrice}
+        onChange={e => setNewTicketPrice(e.target.value)}
+      />
+      <div className="actions">
+        <button className="btn" disabled={loading} onClick={createRifa}>
+          {loading ? "Criando..." : "Criar Rifa"}
+        </button>
+      </div>
 
-          {!raffleEnded ? (
+      <hr />
+
+      <h3>Rifas existentes</h3>
+      <ul className="rifa-list">
+        {rifas.length === 0 && <p>Nenhuma rifa criada ainda.</p>}
+        {rifas.map(r => (
+          <li key={r.id} className="rifa-item">
+            <div>
+              <b>{r.name}</b> </div> 
+              <div> </div>Status: 
+              {r.raffleEnded ? " Encerrada" : " Aberta"} 
+            
+            <button className="btn" onClick={() => selectRifa(r.id)}>Visualizar</button>
+          </li>
+        ))}
+      </ul>
+
+      {rifaDetails && (
+        <div className="rifa-details">
+          <h3>Rifa: {rifaDetails.name}</h3>
+          <p>Dono: {rifaDetails.owner}</p>
+          <p>Bilhetes vendidos: {rifaDetails.soldTickets} / {rifaDetails.totalTickets}</p>
+          <p>Preço do bilhete: {rifaDetails.ticketPrice} ETH</p>
+
+          {rifaDetails.raffleEnded ? (
             <>
-              {selectedTickets.length > 0 && (
-                <button onClick={buyTicket} disabled={loading}>
-                  {loading ? "Processando..." : `Comprar ${selectedTickets.length} bilhete(s)`}
+              <p className="raffle-ended">🎉 Rifa encerrada!</p>
+              <p><b>🏆 Vencedor:</b> {rifaDetails.winner}</p>
+              <p><b>🎟 Número sorteado:</b> {rifaDetails.winningTicketNumber}</p>
+            </>
+          ) : (
+            <>
+              {wallet?.toLowerCase() === rifaDetails.owner.toLowerCase() && (
+                <button className="btn" style={{ backgroundColor: "#f44336", marginBottom: 15 }} onClick={endRaffleManually} disabled={loading}>
+                  {loading ? "Encerrando..." : "Encerrar Rifa Manualmente"}
                 </button>
               )}
 
+              {selectedTickets.length > 0 && (
+                <button className="btn buy-btn" onClick={buyTickets} disabled={loading}>
+                  {loading ? "Comprando..." : `Comprar ${selectedTickets.length} bilhete(s)`}
+                </button>
+              )}
             </>
-          ) : (
-            <div>
-              <h3>🏆 Rifa encerrada!</h3>
-              <p>Vencedor: {winner}</p>
-              <p>🎉 Número sorteado: {winningTicketNumber}</p>
-            </div>
           )}
-        </>
+
+          <div className="ticket-list">
+            {Array.from({ length: rifaDetails.totalTickets }, (_, i) => i + 1).map(num => {
+              const sold = rifaDetails.soldTicketNumbers.includes(num);
+              const selected = selectedTickets.includes(num);
+              return (
+                <button
+                  key={num}
+                  className={`ticket-button ${sold ? "sold" : selected ? "selected" : ""}`}
+                  disabled={sold || rifaDetails.raffleEnded}
+                  onClick={() => toggleTicket(num)}
+                >
+                  {num}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -5,7 +5,7 @@ async function main() {
   const ticketPrice = ethers.parseEther("0.002");
 
   const Rifa = await ethers.getContractFactory("Rifa");
-  const rifa = await Rifa.deploy(totalTickets, ticketPrice);
+  const rifa = await Rifa.deploy();
   await rifa.waitForDeployment();
 
   const address = await rifa.getAddress();
