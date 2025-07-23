@@ -162,30 +162,39 @@ function App() {
       <hr />
 
       <h3>Criar nova rifa</h3>
-      <input
-        className="select"
-        placeholder="Nome da rifa"
-        value={newName}
-        onChange={e => setNewName(e.target.value)}
-      />
-      <input
-        className="select"
-        type="number"
-        min={1}
-        value={newTotalTickets}
-        onChange={e => setNewTotalTickets(Number(e.target.value))}
-      />
-      <input
-        className="select"
-        placeholder="Preço do bilhete (ETH)"
-        value={newTicketPrice}
-        onChange={e => setNewTicketPrice(e.target.value)}
-      />
-      <div className="actions">
-        <button className="btn" disabled={loading} onClick={createRifa}>
-          {loading ? "Criando..." : "Criar Rifa"}
-        </button>
+      <div className="input-group">
+        <label htmlFor="nomeRifa">Nome da Rifa:</label>
+        <input
+          id="nomeRifa"
+          className="select"
+          placeholder="Ex: Rifa de bicicleta"
+          value={newName}
+          onChange={e => setNewName(e.target.value)}
+        />
       </div>
+
+      <div className="input-group">
+        <label htmlFor="totalBilhetes">Quantidade total de bilhetes:</label>
+        <input
+          id="totalBilhetes"
+          className="select"
+          type="number"
+          min={1}
+          value={newTotalTickets}
+          onChange={e => setNewTotalTickets(Number(e.target.value))}
+        />
+      </div>
+
+<div className="input-group">
+  <label htmlFor="precoBilhete">Preço do bilhete (em ETH):</label>
+  <input
+    id="precoBilhete"
+    className="select"
+    placeholder="Ex: 0.01"
+    value={newTicketPrice}
+    onChange={e => setNewTicketPrice(e.target.value)}
+  />
+</div>
 
       <hr />
 

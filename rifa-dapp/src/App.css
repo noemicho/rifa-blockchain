@@ -201,3 +201,15 @@ p {
   margin-top: 10px;
   width: 100%;
 }
+
+.input-group {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input-group label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}

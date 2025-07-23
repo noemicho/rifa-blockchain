@@ -16,7 +16,7 @@ Os usuários podem conectar a carteira MetaMask, comprar bilhetes e concorrer a 
 ### Clone o repositório
 
 ```bash
-git clone https://github.com/seu-usuario/rifa-blockchain.git
+git clone https://github.com/noemicho/rifa-blockchain.git
 cd rifa-blockchain
 ```
 
