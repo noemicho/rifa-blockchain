@@ -6,6 +6,13 @@ import "./App.css";
 const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
 
 function App() {
+
+  const ADMIN_ADDRESSES = [
+  "0xdf3e18d64bc6a983f673ab319ccae4f1a57c709", 
+  
+  ];
+  const [isAdmin, setIsAdmin] = useState(false);
+
   const [wallet, setWallet] = useState(null);
   const [contract, setContract] = useState(null);
   const [rifas, setRifas] = useState([]);
@@ -26,6 +33,7 @@ function App() {
     const prov = new ethers.BrowserProvider(window.ethereum);
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     setWallet(accounts[0]);
+    setIsAdmin(ADMIN_ADDRESSES.map(a => a.toLowerCase()).includes(accounts[0].toLowerCase()));
     const signer = await prov.getSigner();
     const contractInstance = new ethers.Contract(contractAddress, MultiRifaABI.abi, signer);
     setContract(contractInstance);
@@ -159,44 +167,57 @@ function App() {
         <p>Carteira conectada: <b>{wallet}</b></p>
       )}
 
-      <hr />
+      
 
-      <h3>Criar nova rifa</h3>
-      <div className="input-group">
-        <label htmlFor="nomeRifa">Nome da Rifa:</label>
-        <input
-          id="nomeRifa"
-          className="select"
-          placeholder="Ex: Rifa de bicicleta"
-          value={newName}
-          onChange={e => setNewName(e.target.value)}
-        />
-      </div>
+      {isAdmin && (
+        <>
+          <hr />
+          <h3>Criar nova rifa</h3>
 
-      <div className="input-group">
-        <label htmlFor="totalBilhetes">Quantidade total de bilhetes:</label>
-        <input
-          id="totalBilhetes"
-          className="select"
-          type="number"
-          min={1}
-          value={newTotalTickets}
-          onChange={e => setNewTotalTickets(Number(e.target.value))}
-        />
-      </div>
+          <div className="input-group">
+            <label htmlFor="nomeRifa">Nome da Rifa:</label>
+            <input
+              id="nomeRifa"
+              className="select"
+              placeholder="Ex: Rifa do PS5"
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+            />
+          </div>
 
-<div className="input-group">
-  <label htmlFor="precoBilhete">Preço do bilhete (em ETH):</label>
-  <input
-    id="precoBilhete"
-    className="select"
-    placeholder="Ex: 0.01"
-    value={newTicketPrice}
-    onChange={e => setNewTicketPrice(e.target.value)}
-  />
-</div>
+          <div className="input-group">
+            <label htmlFor="totalBilhetes">Quantidade total de bilhetes:</label>
+            <input
+              id="totalBilhetes"
+              className="select"
+              type="number"
+              min={1}
+              value={newTotalTickets}
+              onChange={e => setNewTotalTickets(Number(e.target.value))}
+            />
+          </div>
 
-      <hr />
+          <div className="input-group">
+            <label htmlFor="precoBilhete">Preço do bilhete (em ETH):</label>
+            <input
+              id="precoBilhete"
+              className="select"
+              placeholder="Ex: 0.01"
+              value={newTicketPrice}
+              onChange={e => setNewTicketPrice(e.target.value)}
+            />
+          </div>
+
+          <div className="actions">
+            <button className="btn" disabled={loading} onClick={createRifa}>
+              {loading ? "Criando..." : "Criar Rifa"}
+            </button>
+          </div>
+
+          <hr />
+        </>
+        
+      )}
 
       <h3>Rifas existentes</h3>
       <ul className="rifa-list">
@@ -228,8 +249,13 @@ function App() {
             </>
           ) : (
             <>
-              {wallet?.toLowerCase() === rifaDetails.owner.toLowerCase() && (
-                <button className="btn" style={{ backgroundColor: "#f44336", marginBottom: 15 }} onClick={endRaffleManually} disabled={loading}>
+              {isAdmin && (
+                <button
+                  className="btn"
+                  style={{ backgroundColor: "#f44336", marginBottom: 15 }}
+                  onClick={endRaffleManually}
+                  disabled={loading}
+                >
                   {loading ? "Encerrando..." : "Encerrar Rifa Manualmente"}
                 </button>
               )}
